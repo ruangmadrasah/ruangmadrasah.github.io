@@ -4571,17 +4571,26 @@ function populateBulanTahunFilters() {
             const fragment = document.createDocumentFragment();
             const userMap = new Map(window.appState.allUsers.map(u => [u.id, u.namaLengkap]));
             
-            filteredMateri.forEach(materi => {
+filteredMateri.forEach(materi => {
                 const item = document.createElement('div');
                 item.className = 'materi-item block p-4 rounded-lg border bg-white hover:bg-slate-50 cursor-pointer';
-                item.dataset.id = materi.id; // Untuk diklik
+                item.dataset.id = materi.id;
 
                 const tgl = new Date(materi.timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
                 const penulis = userMap.get(materi.guruId) || 'Guru';
 
-                // Tampilkan tombol Edit hanya untuk guru
-                const editButton = (window.appState.loggedInRole !== 'siswa') ? 
-                    `<button data-action="edit-materi" class="btn btn-sm btn-secondary ml-auto">Edit</button>` : '';
+                // ==========================================================
+                // ▼▼▼ PERUBAHAN: TAMBAHKAN TOMBOL HAPUS ▼▼▼
+                // ==========================================================
+                let actionButtons = '';
+                if (window.appState.loggedInRole !== 'siswa') {
+                    actionButtons = `
+                        <div class="ml-auto flex gap-2">
+                            <button data-action="edit-materi" class="btn btn-sm btn-secondary">Edit</button>
+                            <button data-action="delete-materi" class="btn btn-sm btn-danger">Hapus</button>
+                        </div>
+                    `;
+                }
 
                 item.innerHTML = `
                     <div class="flex justify-between items-start">
@@ -4589,9 +4598,13 @@ function populateBulanTahunFilters() {
                             <h3 class="font-semibold text-lg text-teal-700">${materi.judul}</h3>
                             <p class="text-sm text-slate-500">${materi.mapel} • ${penulis} • ${tgl}</p>
                         </div>
-                        ${editButton}
+                        ${actionButtons}
                     </div>
                 `;
+                // ==========================================================
+                // ▲▲▲ AKHIR PERUBAHAN ▲▲▲
+                // ==========================================================
+                
                 fragment.appendChild(item);
             });
             ui.materi_belajar.listContainer.appendChild(fragment);
@@ -4983,15 +4996,41 @@ ui.addStudentForm.addEventListener('submit', async e => {
             if (ui.materi_belajar.filterDate) ui.materi_belajar.filterDate.addEventListener('change', renderMateriList);
 
             // Listener untuk klik di daftar materi
+// Listener untuk klik di daftar materi
             if (ui.materi_belajar.listContainer) {
                 ui.materi_belajar.listContainer.addEventListener('click', (e) => {
                     const editBtn = e.target.closest('button[data-action="edit-materi"]');
+                    // ▼▼▼ TAMBAHAN: DEFINISI TOMBOL HAPUS ▼▼▼
+                    const deleteBtn = e.target.closest('button[data-action="delete-materi"]'); 
                     const materiItem = e.target.closest('.materi-item');
                     
-                    if (editBtn && materiItem) { // Klik tombol edit
-                        e.stopPropagation(); // Hentikan agar tidak memicu klik item
+                    if (editBtn && materiItem) {
+                        e.stopPropagation();
                         loadMateriForEdit(materiItem.dataset.id);
-                    } else if (materiItem) { // Klik item (untuk membaca)
+                    
+                    // ▼▼▼ TAMBAHAN: LOGIKA HAPUS ▼▼▼
+                    } else if (deleteBtn && materiItem) {
+                        e.stopPropagation(); // Jangan buka detail materi
+                        const id = materiItem.dataset.id;
+                        const materi = window.appState.allMateri.find(m => m.id === id);
+                        
+                        showConfirmModal({
+                            title: "Hapus Materi?",
+                            message: `Yakin ingin menghapus materi "${materi ? materi.judul : 'ini'}"?`,
+                            okText: "Ya, Hapus",
+                            onConfirm: async () => {
+                                try {
+                                    await onlineDB.delete('materi_belajar', id);
+                                    showToast("Materi berhasil dihapus.");
+                                } catch (error) {
+                                    console.error("Gagal hapus materi:", error);
+                                    showToast("Gagal menghapus materi.", "error");
+                                }
+                            }
+                        });
+                    // ▲▲▲ AKHIR TAMBAHAN ▲▲▲
+
+                    } else if (materiItem) {
                         showMateriDetail(materiItem.dataset.id);
                     }
                 });
