@@ -4046,9 +4046,14 @@ window.populateSettingsForms = function() {
                             <p class="text-sm font-semibold text-teal-700">${formattedDate} - ${formattedTime}</p>
                             <p class="text-xs text-slate-500 font-medium">${className}</p>
                         </div>
-                        <div class="flex-shrink-0 flex items-center gap-2">
-                            <button data-action="edit-jurnal" class="btn btn-sm btn-secondary">Edit</button>
-                            <button data-action="delete-jurnal" class="btn btn-sm btn-danger">Hapus</button>
+                            <div class="flex-shrink-0 flex items-center gap-2">
+                            <button data-action="edit-jurnal" class="btn btn-sm btn-secondary p-2" title="Edit">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                            </button>
+                            
+                            <button data-action="delete-jurnal" class="btn btn-sm btn-danger p-2" title="Hapus">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
                         </div>
                     </div>
                     <div class="mt-4 space-y-3">
@@ -4436,13 +4441,14 @@ function populateBulanTahunFilters() {
 
 /**
          * Fungsi utama untuk merender tabel Roster Absensi
+         * PERBAIKAN: Menambahkan wrapper 'max-width: 85vw' langsung di sini agar tabel tidak tembus kartu di HP.
          */
         function renderDaftarHadirRoster() {
             if (!ui.daftarHadir.container) return;
 
             // 1. Dapatkan Filter
             const classId = ui.daftarHadir.filterKelas.value;
-            const month = parseInt(ui.daftarHadir.filterBulan.value, 10); // 0-11
+            const month = parseInt(ui.daftarHadir.filterBulan.value, 10);
             const year = parseInt(ui.daftarHadir.filterTahun.value, 10);
             const mapelFilter = ui.daftarHadir.filterMapel.value;
 
@@ -4456,7 +4462,6 @@ function populateBulanTahunFilters() {
                 .filter(s => s.classId === classId)
                 .sort((a, b) => a.name.localeCompare(b.name));
 
-            // Dapatkan jurnal untuk kelas dan rentang waktu yang dipilih
             const jurnalEntries = window.appState.allJurnalMengajar
                 .filter(j => {
                     if (j.classId !== classId) return false;
@@ -4464,78 +4469,84 @@ function populateBulanTahunFilters() {
                     const t = new Date(j.timestamp);
                     return t.getMonth() === month && t.getFullYear() === year;
                 })
-                .sort((a, b) => a.timestamp - b.timestamp); // Urutkan dari pertemuan terlama -> terbaru
+                .sort((a, b) => a.timestamp - b.timestamp); 
 
-            // 3. Buat Tabel HTML
-            let tableHTML = '<table class="min-w-full divide-y divide-slate-200 border border-slate-200">';
+            // 3. Mulai String HTML
+            // --- PERBAIKAN UTAMA DI SINI ---
+            // Kita bungkus tabel dengan DIV yang punya 'max-width: 85vw' (85% lebar layar).
+            // Ini memaksa tabel untuk scroll jika layarnya sempit (HP).
+            let tableHTML = `<div style="overflow-x: auto; max-width: 85vw; width: 100%; margin: 0 auto;">`;
             
-            // 4. Buat Header Tabel (Thead)
-            tableHTML += '<thead class="bg-slate-50">';
+            tableHTML += '<table class="min-w-full border-collapse border border-slate-300 text-sm bg-white" style="border-spacing: 0;">';
+            
+            // --- HEADER ---
+            tableHTML += '<thead class="bg-slate-100">';
             tableHTML += '<tr>';
-            tableHTML += '<th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">No</th>';
-            tableHTML += '<th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nama Siswa</th>';
             
-            // ==========================================================
-            // PERBAIKAN: Ubah batas pertemuan menjadi 15
-            // ==========================================================
+            // Kolom No (Sticky)
+            tableHTML += '<th class="border border-slate-300 px-2 py-3 text-center font-semibold text-slate-700 w-10 sticky left-0 z-20 bg-slate-100">No</th>';
+            
+            // Kolom Nama (Sticky)
+            tableHTML += '<th class="border border-slate-300 px-3 py-3 text-left font-semibold text-slate-700 min-w-[180px] sticky left-10 z-20 bg-slate-100 shadow-md">Nama Siswa</th>';
+            
             const maxPertemuan = 15;
             for (let i = 0; i < maxPertemuan; i++) {
                 let headerText = `P${i + 1}`;
+                let dateText = '';
+                
                 if (jurnalEntries[i]) {
-                    // ==========================================================
-                    // PERBAIKAN: Ubah format tanggal ke dd/mm/yyyy dan buat teks kecil (text-xs)
-                    // ==========================================================
-                    const tgl = new Date(jurnalEntries[i].timestamp).toLocaleDateString('id-ID', { 
-                        day: '2-digit', 
-                        month: '2-digit', 
-                        year: 'numeric' // <-- Tambahkan ini
-                    });
-                    headerText = `<div class='flex flex-col items-center'><span>P${i + 1}</span><span class='font-normal text-xs text-slate-400'>${tgl}</span></div>`; // <-- Tambahkan text-xs
+                    dateText = new Date(jurnalEntries[i].timestamp).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' });
                 }
-                tableHTML += `<th class="px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">${headerText}</th>`;
+                
+                // Kolom Pertemuan (Lebar 45px)
+                tableHTML += `<th style="width: 45px; min-width: 45px; max-width: 45px;" class="border border-slate-300 p-0 text-center font-semibold text-slate-700 align-top bg-slate-50">
+                    <div class="py-1">${headerText}</div>
+                    ${dateText ? `<div class="border-t border-slate-300 py-1 bg-white text-[10px] text-slate-500">${dateText}</div>` : ''}
+                </th>`;
             }
             tableHTML += '</tr></thead>';
 
-            // 5. Buat Body Tabel (Tbody)
-            tableHTML += '<tbody class="bg-white divide-y divide-slate-200">';
+            // --- BODY ---
+            tableHTML += '<tbody>';
+            
             if (studentsInClass.length === 0) {
-                tableHTML += `<tr><td colspan="${maxPertemuan + 2}" class="text-center p-4 text-slate-500">Tidak ada siswa di kelas ini.</td></tr>`;
+                tableHTML += `<tr><td colspan="${maxPertemuan + 2}" class="border border-slate-300 text-center p-4 text-slate-500">Tidak ada siswa di kelas ini.</td></tr>`;
             } else {
                 studentsInClass.forEach((student, index) => {
                     tableHTML += '<tr class="hover:bg-slate-50">';
-                    tableHTML += `<td class="px-3 py-2 whitespace-nowrap text-sm text-slate-500">${index + 1}</td>`;
-                    tableHTML += `<td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-slate-900">${student.name}</td>`;
+                    
+                    // No (Sticky)
+                    tableHTML += `<td class="border border-slate-300 px-2 py-2 text-center text-slate-600 sticky left-0 z-10 bg-white">${index + 1}</td>`;
+                    
+                    // Nama (Sticky)
+                    tableHTML += `<td class="border border-slate-300 px-3 py-2 font-medium text-slate-800 whitespace-nowrap sticky left-10 z-10 bg-white shadow-md border-r-2 border-r-slate-300">${student.name}</td>`;
 
                     const studentNameLower = student.name.toLowerCase();
 
-                    // Loop untuk setiap kolom pertemuan
                     for (let i = 0; i < maxPertemuan; i++) {
-                        let cellContent = '-'; // Default (jika belum ada jurnal)
+                        let cellContent = ''; 
                         const jurnal = jurnalEntries[i];
 
                         if (jurnal) {
-                            // Jika ada jurnal, cek absensi
-                            // Fungsi parseAbsensiString yang baru (di atas) akan memperbaiki ini
                             const absensi = parseAbsensiString(jurnal.absensi); 
-                            
-                            if (absensi.S.includes(studentNameLower)) {
-                                cellContent = '<span class="font-bold text-orange-500">S</span>';
-                            } else if (absensi.I.includes(studentNameLower)) {
-                                cellContent = '<span class="font-bold text-blue-500">I</span>';
-                            } else if (absensi.A.includes(studentNameLower)) {
-                                cellContent = '<span class="font-bold text-red-500">A</span>';
-                            } else {
-                                cellContent = '<span class="font-bold text-teal-500">✔</span>'; // Hadir
-                            }
+                            if (absensi.S.includes(studentNameLower)) cellContent = '<span class="font-bold text-blue-600">S</span>';
+                            else if (absensi.I.includes(studentNameLower)) cellContent = '<span class="font-bold text-teal-600">I</span>';
+                            else if (absensi.A.includes(studentNameLower)) cellContent = '<span class="font-bold text-red-600">A</span>';
+                            else cellContent = '<span class="font-bold text-slate-400">•</span>'; 
+                        } else {
+                            cellContent = '<span class="text-slate-200">-</span>';
                         }
-                        tableHTML += `<td class="px-2 py-2 whitespace-nowrap text-sm text-center">${cellContent}</td>`;
+                        
+                        tableHTML += `<td class="border border-slate-300 px-1 py-2 text-center bg-white">${cellContent}</td>`;
                     }
                     tableHTML += '</tr>';
                 });
             }
             tableHTML += '</tbody></table>';
+            
+            // Tutup Wrapper Div
+            tableHTML += '</div>';
 
-            // 6. Injeksi ke DOM
             ui.daftarHadir.container.innerHTML = tableHTML;
         }
         /**
@@ -4586,8 +4597,13 @@ filteredMateri.forEach(materi => {
                 if (window.appState.loggedInRole !== 'siswa') {
                     actionButtons = `
                         <div class="ml-auto flex gap-2">
-                            <button data-action="edit-materi" class="btn btn-sm btn-secondary">Edit</button>
-                            <button data-action="delete-materi" class="btn btn-sm btn-danger">Hapus</button>
+                            <button data-action="edit-materi" class="btn btn-sm btn-secondary p-2" title="Edit Materi">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                            </button>
+                            
+                            <button data-action="delete-materi" class="btn btn-sm btn-danger p-2" title="Hapus Materi">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
                         </div>
                     `;
                 }
