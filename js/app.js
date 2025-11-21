@@ -4692,8 +4692,10 @@ function renderMateriDetailPage() {
             if (!materiId) {
                 materiId = sessionStorage.getItem('currentMateriId');
             }
+
             if (!materiId) {
-                showPage('materi_belajar'); return;
+                showPage('materi_belajar'); 
+                return;
             }
 
             const materi = window.appState.allMateri.find(m => m.id === materiId);
@@ -4704,22 +4706,22 @@ function renderMateriDetailPage() {
             }
 
             if (ui.materi_detail.frame) {
-                const originalUrl = materi.url;
-                const cacheBuster = "t=" + Date.now();
+                // ==========================================================
+                // ▼▼▼ KEMBALI KE METODE AMAN (Hapus ?t=...) ▼▼▼
+                // ==========================================================
                 
-                let newUrl;
-
-                // Cek apakah URL asli sudah punya query string (?)
-                if (originalUrl.includes('?')) {
-                    // Jika ya, tambahkan parameter baru dengan (&)
-                    newUrl = originalUrl + "&" + cacheBuster;
-                } else {
-                    // Jika tidak, tambahkan parameter baru dengan (?)
-                    newUrl = originalUrl + "?" + cacheBuster;
-                }
-
-                // Setel URL yang unik. Ini MEMAKSA browser untuk memuat ulang.
-                ui.materi_detail.frame.src = newUrl;
+                // 1. Kosongkan dulu frame-nya agar terlihat ada proses loading
+                ui.materi_detail.frame.src = 'about:blank';
+                
+                // 2. Beri jeda sedikit lebih lama (100ms) agar browser "bernapas"
+                // lalu isi dengan URL asli materi.
+                setTimeout(() => {
+                    ui.materi_detail.frame.src = materi.url;
+                }, 100);
+                
+                // ==========================================================
+                // ▲▲▲ AKHIR PERBAIKAN ▲▲▲
+                // ==========================================================
             }
         }
         async function initApp() {
