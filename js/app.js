@@ -304,6 +304,7 @@ jurnalMengajar: {
             listContainer: document.getElementById('materi-list-container'),
             filterSearch: document.getElementById('materi-filter-search'),
             filterMapel: document.getElementById('materi-filter-mapel'),
+            filterKelas: document.getElementById('materi-filter-kelas'),
             filterDate: document.getElementById('materi-filter-date'),
             addBtn: document.getElementById('materi-add-btn')
         },
@@ -313,6 +314,7 @@ jurnalMengajar: {
             editId: document.getElementById('materi-edit-id'),
             judul: document.getElementById('materi-judul'),
             mapelSelect: document.getElementById('materi-mapel-select'),
+            targetKelas: document.getElementById('materi-target-kelas'),
             url: document.getElementById('materi-url'),
             submitBtn: document.getElementById('materi-submit-btn'),
             backBtn: document.getElementById('materi-editor-back-btn')
@@ -538,19 +540,22 @@ function setupUIForRole(role) {
 }
 // --- BARU: Fungsi helper untuk menyinkronkan status aktif di semua menu ---
 function updateNavActiveState(pageId) {
-    // ▼▼▼ TAMBAHKAN LOGIKA INI ▼▼▼
     // Tentukan link mana yang harus 'aktif'.
-    // Jika kita di 'detail_siswa', anggap 'ringkasan' (Dashboard) yang aktif.
     let activePageLink = pageId;
+
+    // 1. Jika di Detail Siswa -> Sorot Dashboard
     if (pageId === 'detail_siswa') {
         activePageLink = 'ringkasan';
+    } 
+    // 2. Jika di Editor atau Baca Materi -> Sorot Materi Belajar
+    else if (pageId === 'materi_editor' || pageId === 'materi_detail') {
+        activePageLink = 'materi_belajar';
     }
-    // ▲▲▲ AKHIR TAMBAHAN ▲▲▲
 
     const allLinks = [
         ...ui.sidebarLinks,
         ...ui.bottomNavLinks,
-        ...ui.profileMenuLinks // Termasuk link di dalam profil
+        ...ui.profileMenuLinks 
     ];
 
     allLinks.forEach(link => {
@@ -608,17 +613,30 @@ if (pageId === 'detail_siswa') {
 }
     });
 
-    // Update judul halaman (logika ini tetap sama)
+// Update judul halaman (Pastikan semua ID halaman ada di sini)
     const pageTitles = { 
-        profil: "Profil Saya", ringkasan: "Dashboard", kelas: "Manajemen Kelas", 
-        riwayat: "Riwayat", tentang: "Tentang Aplikasi", 
-        pengaturan: "Pengaturan", tes_hafalan: "Tes Hafalan", 
-        detail_siswa: "Detail Siswa", manajemen_akun: "Manajemen Akun",
+        profil: "Profil Saya", 
+        ringkasan: "Dashboard", 
+        kelas: "Manajemen Kelas", 
+        siswa: "Input Hafalan", 
+        riwayat: "Riwayat", 
+        tentang: "Tentang Aplikasi", 
+        pengaturan: "Pengaturan", 
+        manajemen_akun: "Manajemen Akun",
+        
+        // Perbaikan judul Uji Kompetensi (ID lama mungkin tes_hafalan)
+        tes_hafalan: "Uji Kompetensi", 
+        uji_kompetensi: "Uji Kompetensi", 
+        
+        // Halaman baru lainnya
         jurnal: "Jurnal Mengajar",
         daftar_hadir: "Daftar Absensi",
         materi_belajar: "Materi Belajar",
         materi_editor: "Editor Materi",
-        materi_detail: "Baca Materi"
+        materi_detail: "Baca Materi",
+        analisis_soal: "Analisis Butir Soal",
+        daya_serap: "Daya Serap",
+        pengayaan: "Pengayaan"
     };
 let title = pageTitles[pageId] || "Dashboard";
         if (pageId === 'detail_siswa') {
@@ -4380,6 +4398,37 @@ window.populateSettingsForms = function() {
             materiEditorSelect.value = currentMateriEditorVal; 
             materiFilterSelect.value = currentMateriFilterVal;
         }
+        /**
+         * Mengisi dropdown Kelas di Filter Materi dan Editor Materi
+         */
+        function populateMateriClassDropdowns() {
+            const filterSelect = ui.materi_belajar.filterKelas;
+            const editorSelect = ui.materi_editor.targetKelas;
+            
+            if (!filterSelect || !editorSelect) return;
+
+            // Simpan nilai saat ini agar tidak reset saat reload
+            const currentFilterVal = filterSelect.value;
+            const currentEditorVal = editorSelect.value;
+
+            // Reset opsi (sisakan default)
+            // Filter: default value="" (Semua)
+            while (filterSelect.options.length > 1) filterSelect.remove(1);
+            // Editor: default value="all" (Semua)
+            while (editorSelect.options.length > 1) editorSelect.remove(1);
+
+            // Isi dengan data kelas dari database
+            window.appState.allClasses.sort((a, b) => a.name.localeCompare(b.name)).forEach(cls => {
+                // Isi Filter
+                filterSelect.appendChild(new Option(cls.name, cls.id));
+                // Isi Editor
+                editorSelect.appendChild(new Option(cls.name, cls.id));
+            });
+
+            // Kembalikan nilai
+            filterSelect.value = currentFilterVal;
+            if (currentEditorVal) editorSelect.value = currentEditorVal;
+        }
 function populateBulanTahunFilters() {
             const bulanSelect = ui.daftarHadir.filterBulan;
             const tahunSelect = ui.daftarHadir.filterTahun;
@@ -4558,13 +4607,15 @@ function populateBulanTahunFilters() {
             // 1. Dapatkan filter
             const searchTerm = ui.materi_belajar.filterSearch.value.toLowerCase();
             const mapelFilter = ui.materi_belajar.filterMapel.value;
+            const classFilter = ui.materi_belajar.filterKelas.value;
             const dateSort = ui.materi_belajar.filterDate.value;
 
             // 2. Filter data
             let filteredMateri = window.appState.allMateri.filter(m => {
                 const titleMatch = m.judul.toLowerCase().includes(searchTerm);
                 const mapelMatch = !mapelFilter || (m.mapel === mapelFilter);
-                return titleMatch && mapelMatch;
+                const classMatch = !classFilter || m.targetClassId === 'all' || m.targetClassId === classFilter;
+                return titleMatch && mapelMatch && classMatch;
             });
 
             // 3. Urutkan data
@@ -4589,10 +4640,6 @@ filteredMateri.forEach(materi => {
 
                 const tgl = new Date(materi.timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
                 const penulis = userMap.get(materi.guruId) || 'Guru';
-
-                // ==========================================================
-                // ▼▼▼ PERUBAHAN: TAMBAHKAN TOMBOL HAPUS ▼▼▼
-                // ==========================================================
                 let actionButtons = '';
                 if (window.appState.loggedInRole !== 'siswa') {
                     actionButtons = `
@@ -4617,9 +4664,6 @@ filteredMateri.forEach(materi => {
                         ${actionButtons}
                     </div>
                 `;
-                // ==========================================================
-                // ▲▲▲ AKHIR PERUBAHAN ▲▲▲
-                // ==========================================================
                 
                 fragment.appendChild(item);
             });
@@ -4637,6 +4681,7 @@ filteredMateri.forEach(materi => {
             const payload = {
                 judul: ui.materi_editor.judul.value,
                 mapel: ui.materi_editor.mapelSelect.value,
+                targetClassId: ui.materi_editor.targetKelas.value,
                 url: ui.materi_editor.url.value,
                 timestamp: Date.now(),
                 guruId: currentUserUID,
@@ -4672,6 +4717,7 @@ filteredMateri.forEach(materi => {
             ui.materi_editor.editId.value = materi.id;
             ui.materi_editor.judul.value = materi.judul;
             ui.materi_editor.mapelSelect.value = materi.mapel;
+            ui.materi_editor.targetKelas.value = materi.targetClassId || 'all';
             ui.materi_editor.url.value = materi.url;
             
             showPage('materi_editor');
@@ -5009,6 +5055,7 @@ ui.addStudentForm.addEventListener('submit', async e => {
             }
             if (ui.materi_belajar.filterSearch) ui.materi_belajar.filterSearch.addEventListener('input', debounce(renderMateriList, 300));
             if (ui.materi_belajar.filterMapel) ui.materi_belajar.filterMapel.addEventListener('change', renderMateriList);
+            if (ui.materi_belajar.filterKelas) ui.materi_belajar.filterKelas.addEventListener('change', renderMateriList);
             if (ui.materi_belajar.filterDate) ui.materi_belajar.filterDate.addEventListener('change', renderMateriList);
 
             // Listener untuk klik di daftar materi
@@ -5410,8 +5457,6 @@ if (ui.settings.quranScopeForm) {
                     db.collection('classes').where('lembagaId', '==', lembagaId)
                     .onSnapshot(snapshot => {
                         window.appState.allClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                        // ▼▼▼ TAMBAHKAN BLOK INI ▼▼▼
                         const activePage = document.querySelector('.page.page-active');
                         // Hanya panggil jika kita di halaman detail DAN data siswa sudah ada
                         // (untuk memperbarui nama kelas di judul)
@@ -5422,8 +5467,9 @@ if (ui.settings.quranScopeForm) {
                         if (typeof populateJurnalMengajarForm === 'function') {
                             populateJurnalMengajarForm();
                         }
-                        // ▲▲▲ AKHIR TAMBAHAN ▲▲▲
-
+                        if (typeof populateMateriClassDropdowns === 'function') {
+                            populateMateriClassDropdowns();
+                        }
                         renderAll();
                     }, error => commonErrorHandler(error, 'classes'));
 

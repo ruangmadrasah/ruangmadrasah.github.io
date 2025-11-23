@@ -1087,9 +1087,12 @@
                     <div class="card p-4 sm:p-6">
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
                             <h2 class="text-xl font-semibold text-slate-800">Materi Belajar</h2>
-                            
                             <div class="flex flex-col sm:flex-row sm:items-center gap-2">
                                 <input type="text" id="materi-filter-search" class="form-input w-full sm:w-auto" placeholder="Cari judul materi...">
+                                
+                                <select id="materi-filter-kelas" class="form-select w-full sm:w-auto">
+                                    <option value="">Semua Kelas</option>
+                                    </select>
                                 <select id="materi-filter-mapel" class="form-select w-full sm:w-auto">
                                     <option value="">Semua Mapel</option>
                                     </select>
@@ -1110,10 +1113,17 @@
                 </div>
                                         <div id="materi_editor-page" class="page hidden">
                             <div class="max-w-4xl mx-auto">
-                                <button id="materi-editor-back-btn" class="btn btn-secondary mb-4">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                                    <span>Kembali ke Daftar Materi</span>
-                                </button>
+                            <nav class="flex items-center text-sm font-medium text-slate-500 mb-6">
+                            <span id="materi-editor-back-btn" class="text-teal-600 hover:text-teal-800 cursor-pointer hover:underline transition-colors">
+                                Materi Belajar
+                            </span>
+                            
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mx-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                            
+                            <span class="text-slate-800">Editor Materi</span>
+                            </nav>
                                 
                                 <div class="card p-4 sm:p-6">
                                     <form id="materi-editor-form" class="space-y-4">
@@ -1130,10 +1140,16 @@
                                                 <option value="">-- Pilih Mapel --</option>
                                                 </select>
                                         </div>
-                                        
+                                        <div>
+                                    <label for="materi-target-kelas" class="block text-sm font-medium text-slate-700 mb-1">Target Kelas</label>
+                                    <select id="materi-target-kelas" class="form-select" required>
+                                        <option value="all">Untuk Semua Kelas</option>
+                                        </select>
+                                    <p class="text-xs text-slate-500 mt-1">Pilih "Untuk Semua Kelas" jika materi ini umum, atau pilih kelas spesifik.</p>
+                                         </div>
                                         <div>
                                             <label for="materi-url" class="block text-sm font-medium text-slate-700 mb-1">URL Materi Interaktif</label>
-                                            <input type="url" id="materi-url" class="form-input font-mono" placeholder="https://... (contoh: link GitHub Pages Anda)" required>
+                                            <input type="url" id="materi-url" class="form-input font-mono" placeholder="https://..." required>
                                             <p class="text-xs text-slate-500 mt-1">Tempelkan link (URL) ke halaman web materi Anda di sini.</p>
                                         </div>
                                         
@@ -1146,17 +1162,24 @@
                         </div>
                     <div id="materi_detail-page" class="page hidden">
                     <div class="max-w-full mx-auto">
-                        <div class="flex flex-wrap gap-3 mb-4">
-                            <button id="materi-detail-back-btn" class="btn btn-secondary w-full sm:w-auto">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                                
-                            </button>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                             
-                            <button id="materi-detail-reload-btn" class="btn btn-primary w-full sm:w-auto">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                                
+                            <nav class="flex items-center text-sm font-medium text-slate-500">
+                                <span id="materi-detail-back-btn" class="text-teal-600 hover:text-teal-800 cursor-pointer hover:underline transition-colors">
+                                    Materi Belajar
+                                </span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mx-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                                <span class="text-slate-800">Baca Materi</span>
+                            </nav>
+
+                            <button id="materi-detail-reload-btn" class="btn btn-sm btn-secondary flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                Muat Ulang
                             </button>
-                            </div>
+                        </div>
                         
                         <iframe id="materi-detail-frame" 
                                 class="w-full border border-slate-300 rounded-lg shadow-inner" 
